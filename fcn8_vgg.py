@@ -30,10 +30,24 @@ class FCN8VGG:
                            "models/vgg16.npy"), vgg16_npy_path)
             sys.exit(1)
 
-        self.data_dict = np.load(vgg16_npy_path, encoding='latin1').item()
+        self.data_dict = np.load(vgg16_npy_path, allow_pickle=True, encoding='latin1').item()
+
+        shape = self.data_dict['conv1_1'][0].shape 
+        self.data_dict['conv1_1'] = self._random_initialized_layer(shape[0], shape[1], 9, shape[3])
+        
         self.wd = 5e-4
         print("npy file loaded")
 
+    def _random_initialized_layer(self, h, w, in_ch, out_ch):
+        li = []
+        mean, std_dev = 0, 0.1 
+        filter = np.random.normal(mean, std_dev, (h, w, in_ch, out_ch)) 
+        li.append(filter)
+        bias = np.zeros(out_ch, dtype=np.float32)
+        li.append(bias)
+        return li
+
+    
     def build(self, rgb, train=False, num_classes=20, random_init_fc8=False,
               debug=False):
         """
@@ -65,7 +79,7 @@ class FCN8VGG:
                 green - VGG_MEAN[1],
                 red - VGG_MEAN[2],
             ], 3)
-
+           
             if debug:
                 bgr = tf.Print(bgr, [tf.shape(bgr)],
                                message='Shape of input image: ',
@@ -153,7 +167,6 @@ class FCN8VGG:
         with tf.variable_scope(name) as scope:
             filt = self.get_conv_filter(name)
             conv = tf.nn.conv2d(bottom, filt, [1, 1, 1, 1], padding='SAME')
-
             conv_biases = self.get_bias(name)
             bias = tf.nn.bias_add(conv, conv_biases)
 
