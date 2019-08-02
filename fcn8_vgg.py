@@ -30,7 +30,7 @@ class FCN8VGG:
                            "models/vgg16.npy"), vgg16_npy_path)
             sys.exit(1)
 
-        self.data_dict = np.load(vgg16_npy_path, encoding='latin1').item()
+        self.data_dict = np.load(vgg16_npy_path, encoding='latin1', allow_pickle=True).item()
         self.wd = 5e-4
         print("npy file loaded")
 
