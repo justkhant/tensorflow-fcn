@@ -31,7 +31,7 @@ class FCN8VGG:
             sys.exit(1)
 
         self.data_dict = np.load(vgg16_npy_path, allow_pickle=True, encoding='latin1').item()
-
+        self.input_channels = input_channels 
         shape = self.data_dict['conv1_1'][0].shape 
         self.data_dict['conv1_1'] = self._random_initialized_layer(shape[0], shape[1], input_channels, shape[3])
         self.wd = 5e-4
@@ -68,22 +68,24 @@ class FCN8VGG:
         # Convert RGB to BGR
 
         with tf.name_scope('Processing'):
-
-            red, green, blue = tf.split(rgb, 3, 3)
-            # assert red.get_shape().as_list()[1:] == [224, 224, 1]
-            # assert green.get_shape().as_list()[1:] == [224, 224, 1]
-            # assert blue.get_shape().as_list()[1:] == [224, 224, 1]
-            bgr = tf.concat([
-                blue - VGG_MEAN[0],
-                green - VGG_MEAN[1],
-                red - VGG_MEAN[2],
-            ], 3)
-           
+            if (self.input_channels == 3):
+                red, green, blue = tf.split(rgb, 3, 3)
+                # assert red.get_shape().as_list()[1:] == [224, 224, 1]
+                # assert green.get_shape().as_list()[1:] == [224, 224, 1]
+                # assert blue.get_shape().as_list()[1:] == [224, 224, 1]
+                bgr = tf.concat([
+                    blue - VGG_MEAN[0],
+                    green - VGG_MEAN[1],
+                    red - VGG_MEAN[2],
+                ], 3)
+            else:
+                bgr = rgb
+          
             if debug:
                 bgr = tf.Print(bgr, [tf.shape(bgr)],
                                message='Shape of input image: ',
                                summarize=4, first_n=1)
-
+        print("Creating Layers...")
         self.conv1_1 = self._conv_layer(bgr, "conv1_1")
         self.conv1_2 = self._conv_layer(self.conv1_1, "conv1_2")
         self.pool1 = self._max_pool(self.conv1_2, 'pool1', debug)
@@ -293,15 +295,15 @@ class FCN8VGG:
         init = tf.constant_initializer(value=self.data_dict[name][0],
                                        dtype=tf.float32)
         shape = self.data_dict[name][0].shape
-        print('Layer name: %s' % name)
-        print('Layer shape: %s' % str(shape))
+        #print('Layer name: %s' % name)
+        #print('Layer shape: %s' % str(shape))
         var = tf.get_variable(name="filter", initializer=init, shape=shape)
         if not tf.get_variable_scope().reuse:
             weight_decay = tf.multiply(tf.nn.l2_loss(var), self.wd,
                                        name='weight_loss')
             tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES,
                                  weight_decay)
-        _variable_summaries(var)
+        #_variable_summaries(var)
         return var
 
     def get_bias(self, name, num_classes=None):
@@ -314,7 +316,7 @@ class FCN8VGG:
         init = tf.constant_initializer(value=bias_wights,
                                        dtype=tf.float32)
         var = tf.get_variable(name="biases", initializer=init, shape=shape)
-        _variable_summaries(var)
+        #_variable_summaries(var)
         return var
 
     def get_fc_weight(self, name):
@@ -327,7 +329,7 @@ class FCN8VGG:
                                        name='weight_loss')
             tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES,
                                  weight_decay)
-        _variable_summaries(var)
+        #_variable_summaries(var)
         return var
 
     def _bias_reshape(self, bweight, num_orig, num_new):
@@ -408,7 +410,7 @@ class FCN8VGG:
             weight_decay = tf.multiply(
                 tf.nn.l2_loss(var), wd, name='weight_loss')
             tf.add_to_collection(collection_name, weight_decay)
-        _variable_summaries(var)
+        #_variable_summaries(var)
         return var
 
     def _add_wd_and_summary(self, var, wd, collection_name=None):
@@ -418,19 +420,19 @@ class FCN8VGG:
             weight_decay = tf.multiply(
                 tf.nn.l2_loss(var), wd, name='weight_loss')
             tf.add_to_collection(collection_name, weight_decay)
-        _variable_summaries(var)
+        #_variable_summaries(var)
         return var
 
     def _bias_variable(self, shape, constant=0.0):
         initializer = tf.constant_initializer(constant)
         var = tf.get_variable(name='biases', shape=shape,
                               initializer=initializer)
-        _variable_summaries(var)
+        #_variable_summaries(var)
         return var
 
     def get_fc_weight_reshape(self, name, shape, num_classes=None):
-        print('Layer name: %s' % name)
-        print('Layer shape: %s' % shape)
+        #print('Layer name: %s' % name)
+        #print('Layer shape: %s' % shape)
         weights = self.data_dict[name][0]
         weights = weights.reshape(shape)
         if num_classes is not None:
