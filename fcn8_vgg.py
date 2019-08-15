@@ -15,7 +15,7 @@ VGG_MEAN = [103.939, 116.779, 123.68]
 
 class FCN8VGG:
 
-    def __init__(self, input_channels, vgg16_npy_path=None):
+    def __init__(self, vgg16_npy_path=None):
         if vgg16_npy_path is None:
             path = sys.modules[self.__class__.__module__].__file__
             # print path
@@ -31,9 +31,7 @@ class FCN8VGG:
             sys.exit(1)
 
         self.data_dict = np.load(vgg16_npy_path, allow_pickle=True, encoding='latin1').item()
-        self.input_channels = input_channels 
-        shape = self.data_dict['conv1_1'][0].shape 
-        self.data_dict['conv1_1'] = self._random_initialized_layer(shape[0], shape[1], input_channels, shape[3])
+        self.input_channels = self.data_dict['conv1_1'][0].shape[2] 
         self.wd = 5e-4
         print("npy file loaded")
 
@@ -46,6 +44,12 @@ class FCN8VGG:
         li.append(bias)
         return li
 
+
+    def change_first_layer(self, input_channels):
+        self.input_channels = input_channels
+        shape = self.data_dict['conv1_1'][0].shape 
+        self.data_dict['conv1_1'] = self._random_initialized_layer(shape[0], shape[1], input_channels, shape[3])
+    
     
     def build(self, rgb, train=False, num_classes=20, random_init_fc8=False,
               debug=False):
